@@ -13,30 +13,21 @@ class GroupByHelper
      */
     public function getGroupByFields($groupBy, $selects)
     {
-        $groupBy = $this->getPreparedGroupBy($groupBy);
-        $fields = [];
-        $hasAggregate = false;
 
-        foreach ($selects as $select) {
-            $select = trim((string)$select);
-            $selectHasAggregate = $this->hasAggregate($select);
-            $hasAggregate = $hasAggregate || $selectHasAggregate;
-            // Do not add fields with aggregate functions
-            if ($selectHasAggregate) {
-                continue;
-            }
+        /**
+         * Previous commit Reference: 3c09c18
+         * 
+         * Previously there was a block of code here which formed the group by clause for the datagrid select statement.
+         * This added any missing columns to the group by clause that would have been missing to ensure the query is valid.
+         * This condition is not required on MySQL and actually changes the results that we were expecting.
+         * 
+         * We stripped adding a group by clause on this query due to the issue above - this means
+         * the group by clause is instead defined in the relating datagrid.yml file and not altered retrospectively.
+         * 
+         * The result is that the amount of rows returned to the datagrid is the same as Oro 1.9
+         */
 
-            $field = $this->getFieldForGroupBy($select);
-            if ($field) {
-                $fields[] = $field;
-            }
-        }
-
-        if ($hasAggregate) {
-            $groupBy = array_merge($groupBy, array_diff($fields, $groupBy));
-        }
-
-        return array_unique($groupBy);
+        return array_unique($this->getPreparedGroupBy($groupBy));
     }
 
     /**

@@ -96,44 +96,20 @@ abstract class AbstractFilter implements FilterInterface
             return true;
         }
 
-        if ($relatedJoin) {
-            /** @var OrmFilterDatasourceAdapter $ds */
-            $qb = $ds->getQueryBuilder();
-
-            $fieldsExprs = $this->createConditionFieldExprs($qb);
-            $subExprs = [];
-            $groupBy = implode(', ', $this->getSelectFieldFromGroupBy($qb));
-
-            foreach ($fieldsExprs as $fieldExpr) {
-                $subQb = clone $qb;
-                $subQb
-                    ->resetDQLPart('orderBy')
-                    ->resetDQLPart('where')
-                    ->select($fieldExpr)
-                    ->andWhere($comparisonExpr)
-                    ->andWhere(sprintf('%1$s = %1$s', $fieldExpr));
-                if ($groupBy) {
-                    // replace aliases from SELECT by expressions, since SELECT clause is changed
-                    $subQb->groupBy($groupBy);
-                }
-                list($dql, $replacements) = $this->createDQLWithReplacedAliases($ds, $subQb);
-                list($fieldAlias, $field) = explode('.', $fieldExpr);
-                $replacedFieldExpr = sprintf('%s.%s', $replacements[$fieldAlias], $field);
-                $oldExpr = sprintf('%1$s = %1$s', $replacedFieldExpr);
-                $newExpr = sprintf('%s = %s', $replacedFieldExpr, $fieldExpr);
-                $dql = strtr($dql, [$oldExpr => $newExpr]);
-
-                $subExpr = $qb->expr()->exists($dql);
-                if ($joinOperator) {
-                    $subExpr = $qb->expr()->not($subExpr);
-                }
-                $subExprs[] = $subExpr;
-            }
-            $this->applyFilterToClause($ds, call_user_func_array([$qb->expr(), 'andX'], $subExprs));
-        } else {
-            $this->applyFilterToClause($ds, $comparisonExpr);
-        }
-
+        /**
+         * Previous commit Reference: 3c09c18
+         * 
+         * Previously there was a block of code here which formed the group by clause depending on the values being selected.
+         * This added any missing columns to the group by clause that would have been missing to ensure the query is valid.
+         * This condition is not required on MySQL and actually changes the results that we were expecting.
+         * 
+         * We stripped adding a group by clause on filters when there is a related join due to the issue mentioned above - this means
+         * the group by clause is instead defined in the relating datagrid.yml file and not altered retrospectively.
+         * 
+         * The result is that the amount of rows returned to the datagrid is the same as Oro 1.9
+         */
+        $this->applyFilterToClause($ds, $comparisonExpr);
+        
         return true;
     }
 
