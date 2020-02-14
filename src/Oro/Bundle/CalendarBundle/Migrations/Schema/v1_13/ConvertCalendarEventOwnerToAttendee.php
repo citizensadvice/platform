@@ -67,8 +67,8 @@ INSERT INTO oro_calendar_event_attendee
 SELECT
     $values
 FROM oro_calendar_event AS ce
-    LEFT JOIN oro_calendar c ON ce.calendar_id = c.id
-    LEFT JOIN oro_user u ON c.user_owner_id = u.id;
+    JOIN oro_calendar c ON ce.calendar_id = c.id
+    JOIN oro_user u ON c.user_owner_id = u.id;
 EOD;
 
         $this->logQuery($logger, $sql);
