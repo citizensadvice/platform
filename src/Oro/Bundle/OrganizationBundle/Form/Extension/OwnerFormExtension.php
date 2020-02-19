@@ -31,6 +31,7 @@ use Oro\Bundle\EntityBundle\ORM\DoctrineHelper;
 use Oro\Bundle\EntityConfigBundle\Tools\ConfigHelper;
 
 use Oro\Bundle\UserBundle\Entity\User;
+
 use Oro\Bundle\FormBundle\Form\Extension\Traits\FormExtendedTypeTrait;
 
 /**
@@ -40,7 +41,7 @@ use Oro\Bundle\FormBundle\Form\Extension\Traits\FormExtendedTypeTrait;
 class OwnerFormExtension extends AbstractTypeExtension
 {
     use FormExtendedTypeTrait;
-    
+
     /** @var DoctrineHelper */
     protected $doctrineHelper;
 
@@ -123,7 +124,6 @@ class OwnerFormExtension extends AbstractTypeExtension
         }
 
         $formConfig = $builder->getFormConfig();
-
         if (!$formConfig->getCompound()) {
             return;
         }
@@ -392,19 +392,26 @@ class OwnerFormExtension extends AbstractTypeExtension
              */
             $builder->add(
                 $this->fieldName,
-                'oro_type_business_unit_select_autocomplete',
-                [
-                    'required' => false,
-                    'label' => $this->fieldLabel,
-                    'autocomplete_alias' => 'business_units_owner_search_handler',
-                    'empty_value' => $emptyValueLabel,
-                    'configs' => [
-                        'multiple' => false,
-                        'allowClear'  => false,
-                        'autocomplete_alias' => 'business_units_owner_search_handler',
-                        'component'   => 'tree-autocomplete',
-                    ]
-                ]
+                'oro_business_unit_tree_select',
+                array_merge(
+                    [
+                        'empty_value'          => $emptyValueLabel,
+                        'mapped'               => true,
+                        'label'                => $this->fieldLabel,
+                        'business_unit_ids'    => $this->getBusinessUnitIds(),
+                        'configs'              => [
+                            'is_safe' => true,
+                        ],
+                        'translatable_options' => false,
+                        'choices'              => $this->businessUnitManager->getTreeOptions(
+                            $this->businessUnitManager->getBusinessUnitsTree(
+                                null,
+                                $this->getOrganizationContextId()
+                            )
+                        )
+                    ],
+                    $validation
+                )
             );
         } else {
             $businessUnits = $user->getBusinessUnits();
@@ -440,15 +447,26 @@ class OwnerFormExtension extends AbstractTypeExtension
             return null;
         }
 
+        $businessUnits = $user->getBusinessUnits()->filter(
+            function (BusinessUnit $businessUnit) use ($organization) {
+                return $businessUnit->getOrganization()->getId() === $organization->getId();
+            }
+        );
         if (!$this->isAssignGranted) {
-            return $user->getBusinessUnits()
-                ->filter(function (BusinessUnit $businessUnit) use ($organization) {
-                    return $businessUnit->getOrganization()->getId() === $organization->getId();
-                })
-                ->first();
+            return $businessUnits->first();
         }
 
-        return $this->businessUnitManager->getCurrentBusinessUnit($user, $organization);
+        // if assign is granted then only allowed business units can be used
+        $allowedBusinessUnits = $this->businessUnitManager->getBusinessUnitIds();
+
+        /** @var BusinessUnit $businessUnit */
+        foreach ($businessUnits as $businessUnit) {
+            if (in_array($businessUnit->getId(), $allowedBusinessUnits)) {
+                return $businessUnit;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -530,6 +548,7 @@ class OwnerFormExtension extends AbstractTypeExtension
      *
      * @return array
      *  value -> business unit id
+     * @throws \Exception
      */
     protected function getBusinessUnitIds()
     {
