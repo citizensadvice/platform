@@ -1,124 +1,137 @@
-define([
-    'jquery',
-    'underscore',
-    'orotranslation/js/translator',
-    'oroui/js/tools',
-    './text-filter'
-], function($, _, __, tools, TextFilter) {
+define(function(require) {
     'use strict';
 
-    var ChoiceFilter;
+    var ChoiceTreeFilter;
+    var _ = require('underscore');
+    var TextFilter = require('oro/filter/choice-filter');
+    var $ = require('jquery');
+    var tools = require('oroui/js/tools');
 
-    /**
-     * Choice filter: filter type as option + filter value as string
-     *
-     * @export  oro/filter/choice-filter
-     * @class   oro.filter.ChoiceFilter
-     * @extends oro.filter.TextFilter
-     */
-    ChoiceFilter = TextFilter.extend({
-        /**
-         * Template selector for filter criteria
-         *
-         * @property
-         */
-        templateSelector: '#choice-filter-template',
+    var availableModes = {
+        all: 'all',
+        selected: 'selected'
+    };
 
-        /**
-         * Selectors for filter criteria elements
-         *
-         * @property {Object}
-         */
-        criteriaValueSelectors: {
-            value: 'input[name="value"]',
-            type: 'input[type="hidden"]:last'
-        },
+    var searchEngine = {
+        findChild: function(item, items) {
+            var self = this;
+            var responce = [];
 
-        /**
-         * @property {boolean}
-         */
-        wrapHintValue: true,
+            _.each(items, function(value) {
+                if (value.owner_id === item.value.id) {
+                    responce.push({
+                        value: value,
+                        children: []
+                    });
+                }
+            });
 
-        /**
-         * Filter events
-         *
-         * @property
-         */
-        events: {
-            'keyup input': '_onReadCriteriaInputKey',
-            'keydown [type="text"]': '_preventEnterProcessing',
-            'click .filter-update': '_onClickUpdateCriteria',
-            'click .filter-criteria .filter-criteria-hide': '_onClickCloseCriteria',
-            'click .disable-filter': '_onClickDisableFilter',
-            'click .choice-value': '_onClickChoiceValue'
-        },
-
-        /**
-         * Initialize.
-         *
-         * @param {Object} options
-         */
-        initialize: function(options) {
-            var opts = _.pick(options || {}, 'choices');
-            _.extend(this, opts);
-
-            // init filter content options if it was not initialized so far
-            if (_.isUndefined(this.choices)) {
-                this.choices = [];
-            }
-            // temp code to keep backward compatible
-            if ($.isPlainObject(this.choices)) {
-                this.choices = _.map(this.choices, function(option, i) {
-                    return {value: i.toString(), label: option};
+            if (responce.length > 0) {
+                $.each(responce, function(key, value) {
+                    responce[key].children = self.findChild(value, items);
                 });
             }
 
-            // init empty value object if it was not initialized so far
-            if (_.isUndefined(this.emptyValue)) {
-                this.emptyValue = {
-                    type: (_.isEmpty(this.choices) ? '' : _.first(this.choices).value),
-                    value: ''
-                };
+            return responce;
+        },
+        _calculateChain: function(response, items) {
+            var self = this;
+            _.each(response, function(value, key) {
+                var chain = [];
+                chain = self.findChainToRoot(chain, value, items);
+                response[key].value.chain = chain;
+            });
+
+            return response;
+        },
+        findChainToRoot: function(chain, value, items) {
+            var self = this;
+            var parent;
+            _.each(items, function(item) {
+                if (value.value.owner_id && item.id === value.value.owner_id) {
+                    parent = {
+                        value: item,
+                        children: []
+                    };
+                }
+            });
+
+            if (parent) {
+                chain.push(parent.value.id);
+                self.findChainToRoot(chain, parent, items);
             }
 
-            ChoiceFilter.__super__.initialize.apply(this, arguments);
+            return chain;
+        },
+        searchItems: function(searchQuery, items) {
+            searchQuery = searchQuery.toLowerCase();
+            var response = [];
+            _.each(items, function(value) {
+                var result = value.name.toLowerCase().indexOf(searchQuery);
+                if (result >= 0) {
+                    response.push({
+                        value: value,
+                        children: []
+                    });
+                }
+            });
+
+            return response;
+        }
+    };
+
+    /**
+     * Number filter: formats value as a number
+     *
+     * @export  oro/filter/choice-business-unit-filter
+     * @class   oro.filter.ChoiceBusinessUnitFilter
+     * @extends oro.filter.TextFilter
+     */
+    ChoiceTreeFilter = TextFilter.extend({
+        templateSelector: '#choice-tree-template',
+
+        mode: availableModes.all,
+
+        events: {
+            'keyup input': '_onReadCriteriaInputKey',
+            'keydown [type="text"]': '_preventEnterProcessing',
+            'keyup input[name="search"]': '_onChangeSearchQuery',
+            'click .filter-update': '_onClickUpdateCriteria',
+            'click .filter-criteria .filter-criteria-hide': '_onClickCloseCriteria',
+            'click .disable-filter': '_onClickDisableFilter',
+            'click .choice-value': '_onClickChoiceValue',
+            'change input[type="checkbox"]': '_onChangeBusinessUnit',
+            'click .button-all': '_onClickButtonAll',
+            'click .button-selected': '_onClickButtonSelected'
         },
 
-        /**
-         * @inheritDoc
-         */
-        dispose: function() {
-            if (this.disposed) {
-                return;
-            }
-            delete this.choices;
-            delete this.emptyValue;
-            ChoiceFilter.__super__.dispose.call(this);
+        emptyValue: {
+            type: 1,
+            value: 'All'
         },
 
-        render: function() {
-            // render only wrapper (a button and a dropdown container e.g.)
-            this._wrap('');
-            // if there's no any wrapper, means it's embedded filter
-            if (this.$el.html() === '') {
-                this._renderCriteria();
-            }
-            return this;
-        },
+        searchEngine: searchEngine,
+
+        checkedItems: {},
 
         /**
          * @inheritDoc
          */
         _renderCriteria: function() {
             var value = _.extend({}, this.emptyValue, this.value);
+            var searchQuery = this.SearchQuery ? this.SearchQuery : undefined;
             var selectedChoiceLabel = '';
+
             if (!_.isEmpty(this.choices)) {
                 var foundChoice = _.find(this.choices, function(choice) {
-                    return String(choice.value) === String(value.type);
+                    return (choice.value === value.type);
                 });
-                foundChoice = foundChoice || _.first(this.choices);
-                selectedChoiceLabel = _.result(foundChoice, 'label') || '';
+
+                if (foundChoice) {
+                    selectedChoiceLabel = foundChoice.label;
+                }
             }
+
             var $filter = $(this.template({
                 name: this.name,
                 choices: this.choices,
@@ -126,93 +139,223 @@ define([
                 selectedChoiceLabel: selectedChoiceLabel,
                 value: value.value
             }));
+
+            var list = this._getListTemplate(this.data, searchQuery);
+            $filter.find('.list').html(list);
+
             this._appendFilter($filter);
             this._updateDOMValue();
+            this._initCheckedItems();
+
             this._criteriaRenderd = true;
         },
 
-        _showCriteria: function() {
-            if (!this._criteriaRenderd) {
-                this._renderCriteria();
-            }
-            this._updateValueField();
-            ChoiceFilter.__super__._showCriteria.apply(this, arguments);
-        },
+        _initCheckedItems: function() {
+            var self = this;
+            var value = this.getValue();
+            var temp;
+            if (value.value.length > 0) {
+                temp = value.value.split(',');
 
-        _onClickChoiceValue: function() {
-            ChoiceFilter.__super__._onClickChoiceValue.apply(this, arguments);
-            this._updateValueField();
-        },
-
-        reset: function() {
-            ChoiceFilter.__super__.reset.apply(this, arguments);
-            this._updateValueField();
-        },
-
-        _updateValueField: function() {
-            var type;
-            var isEmptyType;
-            var valueFrame = this.$('.value-field-frame');
-            if (!valueFrame.length) {
-                return;
-            }
-            // update left and right margins of value field frame
-            var leftWidth = this.$('.choice-filter .dropdown-toggle').outerWidth();
-            var rightWidth = this.$('.filter-update').outerWidth();
-            valueFrame.css('margin-left', leftWidth);
-            valueFrame.css('padding-right', rightWidth);
-            // update class of criteria dropdown
-            type = this.$(this.criteriaValueSelectors.type).val();
-            isEmptyType = this.isEmptyType(type);
-            this.$('.filter-criteria').toggleClass('empty-type', isEmptyType);
-            if (!isEmptyType) {
-                this.$(this.criteriaValueSelectors.value).focus();
+                _.each(temp, function(value) {
+                    if (value !== 'All') {
+                        self.checkedItems[value] = true;
+                    }
+                });
             }
         },
 
-        /**
-         * @inheritDoc
-         */
-        _getCriteriaHint: function() {
-            var value = (arguments.length > 0) ? this._getDisplayValue(arguments[0]) : this._getDisplayValue();
-            var option = null;
+        _getListTemplate: function(items, searchQuery) {
+            var template;
+            var response = [];
+            var chain;
 
-            if (!_.isUndefined(value.type)) {
-                var type = value.type;
-                option = this._getChoiceOption(type);
+            _.each(items, function(value) {
+                value.result = false;
+            });
 
-                if (this.isEmptyType(type)) {
-                    return option ? option.label : this.placeholder;
+            if (searchQuery && searchQuery !== '') {
+                response = this.searchEngine.searchItems(searchQuery, items);
+                response = this.searchEngine._calculateChain(response, items);
+                chain = this._prepareItems(response, items);
+                items = chain;
+            }
+
+            if (this.mode === availableModes.selected) {
+                items = this._getSelectedItems(items);
+                var temp = [];
+                _.each(items, function(value) {
+                    temp.push({
+                        value: value,
+                        children: []
+                    });
+                });
+
+                response = temp;
+            } else {
+                response = this._convertToTree(items);
+            }
+
+            template = this.getListTemplate(response);
+            return template;
+        },
+
+        _getSelectedItems: function(data) {
+            var temp = [];
+            var values;
+            values = this.getValue().value.split(',');
+            _.each(values, function(value) {
+                _.each(data, function(item) {
+                    if (item.id === parseInt(value)) {
+                        temp.push(item);
+                    }
+                });
+            });
+
+            return temp;
+        },
+
+        _prepareItems: function(response, data) {
+            var root = {};
+            _.each(response, function(value) {
+                root[value.value.id] = value.value;
+                root[value.value.id].result = true;
+                _.each(value.value.chain, function(item) {
+                    _.each(data, function(bu) {
+                        if (bu.id === item) {
+                            if (!root[bu.id]) {
+                                root[bu.id] = bu;
+                            }
+                        }
+                    });
+                });
+            });
+
+            var rootArray = [];
+            for (var i in root) {
+                if (root.hasOwnProperty(i)) {
+                    rootArray.push(root[i]);
                 }
             }
 
-            if (!value.value) {
-                return this.placeholder;
+            return rootArray;
+        },
+
+        _convertToTree: function(data) {
+            var response = [];
+            var idToNodeMap = {};
+            var element = {};
+
+            _.each(data, function(value) {
+                element = {};
+                element.value = value;
+                element.children = [];
+
+                idToNodeMap[element.value.id] = element;
+
+                if (!element.value.owner_id) {
+                    response.push(element);
+                } else {
+                    var parentNode = idToNodeMap[element.value.owner_id];
+                    if (parentNode) {
+                        parentNode.children.push(element);
+                    } else {
+                        response.push(element);
+                    }
+                }
+            });
+
+            return response;
+        },
+
+        isSelected: function(item) {
+            var value = this.getValue();
+            var values = value.value.split(',');
+
+            var response = false;
+            _.each(values, function(value) {
+                if (parseInt(value) === item.value.id) {
+                    response = true;
+                }
+            });
+
+            return response;
+        },
+
+        getListTemplate: function(items) {
+            var self = this;
+            var template = '<ul>';
+            $.each(items, function(key, value) {
+                var classSearchResult = '';
+                if (value.value.result) {
+                    classSearchResult = 'search-result';
+                }
+
+                var classSelected = '';
+                if (self.isSelected(value)) {
+                    classSelected = 'checked';
+                }
+
+                var id = self.name + '-' + value.value.id;
+
+                template += '<li>' +
+                    '<label for="' + id + '" class="' + classSearchResult + '">' +
+                    '<input id="' + id + '" ' +
+                    'value="' + value.value.id + '" ' +
+                    'type="checkbox" ' + classSelected + '>' +
+                    value.value.name +
+                    '</label>';
+                if (value.children.length > 0) {
+                    template += self.getListTemplate(value.children);
+                }
+                template += '</li>';
+            });
+            template += '</ul>';
+
+            return template;
+        },
+
+        _onChangeBusinessUnit: function(e) {
+            var values = [];
+            if ($(e.target).is(':checked')) {
+                this.checkedItems[$(e.target).val()] = true;
+            } else {
+                delete this.checkedItems[$(e.target).val()];
             }
 
-            var hintValue = this.wrapHintValue ? ('"' + value.value + '"') : value.value;
+            for (var i in this.checkedItems) {
+                if (this.checkedItems.hasOwnProperty(i)) {
+                    values.push(i);
+                }
+            }
 
-            return (option ? option.label + ' ' : '') + hintValue;
+            values = values.join(',');
+            this.setValue({value: values}, true);
         },
 
         /**
-         * Fetches option object for corresponded value type
+         * Set raw value to filter
          *
-         * @param {*|string} valueType
-         * @returns {{value: string, label: string}}
-         * @private
+         * @param value
+         * @param skipRefresh
+         * @return {*}
          */
-        _getChoiceOption: function(valueType) {
-            return _.findWhere(this.choices, {value: valueType.toString()});
+        setValue: function(value, skipRefresh) {
+            if (!tools.isEqualsLoosely(this.value, value)) {
+                var oldValue = this.value;
+                this.value = tools.deepClone(value);
+                this._updateDOMValue();
+                if (!skipRefresh) {
+                    this._onValueUpdated(this.value, oldValue);
+                }
+            }
+            return this;
         },
 
-        /**
-         * @inheritDoc
-         */
-        _writeDOMValue: function(value) {
-            this._setInputValue(this.criteriaValueSelectors.value, value.value);
-            this._setInputValue(this.criteriaValueSelectors.type, value.type);
-            return this;
+        _onClickUpdateCriteria: function() {
+            this.trigger('updateCriteriaClick', this);
+            this._hideCriteria();
+            this.applyValue();
         },
 
         /**
@@ -221,38 +364,89 @@ define([
         _readDOMValue: function() {
             return {
                 value: this._getInputValue(this.criteriaValueSelectors.value),
-                type: this._getInputValue(this.criteriaValueSelectors.type)
+                type: 1
             };
         },
 
         /**
          * @inheritDoc
          */
-        _triggerUpdate: function(newValue, oldValue) {
-            if (!tools.isEqualsLoosely(newValue, oldValue)) {
-                this.trigger('update');
+        _getCriteriaHint: function() {
+            var self = this;
+            var value = (arguments.length > 0) ? this._getDisplayValue(arguments[0]) : this._getDisplayValue();
+            var option = null;
+
+            if (!value.value) {
+                return this.placeholder;
+            }
+
+            var values = value.value.split(',');
+            var label = [];
+            for (var i in values) {
+                if (values[i] === 'All') {
+                    label.push(values[i]);
+                } else {
+                    for (var j in self.data) {
+                        if (parseInt(values[i]) === this.data[j].id) {
+                            label.push(this.data[j].name);
+                        }
+                    }
+                }
+            }
+
+            var hintValue = this.wrapHintValue ? ('"' + label.join(',') + '"') : label.join(',');
+            return (option ? option.label + ' ' : '') + hintValue;
+        },
+
+        reset: function() {
+            ChoiceTreeFilter.__super__.reset.apply(this, arguments);
+            this._hideCriteria();
+            this.checkedItems = {};
+            this.$el.find('input[name="search"]').val('');
+            this.$el.find('input:checked').removeAttr('checked');
+            this.$el.find('label').removeClass('search-result');
+        },
+
+        _onChangeSearchQuery: function(event) {
+            var searchQuery = $(event.target).val();
+            var list = this._getListTemplate(this.data, searchQuery);
+            this.$el.find('.list').html(list);
+        },
+
+        _onChangeMode: function() {
+            this.$el.find('.buttons span').removeClass('active');
+            this.$el.find('.button' + this.mode).addClass('active');
+
+            var searchQuery = this.$el.find('[name="search"]').val();
+
+            var list = this._getListTemplate(this.data, searchQuery);
+            this.$el.find('.list').html(list);
+        },
+
+        _onClickButtonAll: function(event) {
+            if (this.mode !== availableModes.all) {
+                this.mode = availableModes.all;
+                this.$el.find('.buttons span').removeClass('active');
+
+                this._onChangeMode();
+                $(event.target).addClass('active');
             }
         },
 
-        /**
-         * @inheritDoc
-         */
-        _onValueUpdated: function(newValue, oldValue) {
-            // synchronize choice selector with new value
-            var menu = this.$('.choice-filter .dropdown-menu');
-            menu.find('li a').each(function() {
-                var item = $(this);
-                if (item.data('value').toString() === oldValue.type && item.parent().hasClass('active')) {
-                    item.parent().removeClass('active');
-                } else if (item.data('value').toString() === newValue.type && !item.parent().hasClass('active')) {
-                    item.parent().addClass('active');
-                    menu.parent().find('button').html(item.html() + '<span class="caret"></span>');
-                }
-            });
+        _onClickButtonSelected: function(event) {
+            event.stopImmediatePropagation();
+            if (this.mode !== availableModes.selected) {
+                this.$el.find('.buttons span').removeClass('active');
+                this.mode = availableModes.selected;
+                this._onChangeMode();
+                $(event.target).addClass('active');
+            }
+        },
 
-            ChoiceFilter.__super__._onValueUpdated.apply(this, arguments);
+        _focusCriteria: function() {
+            this.$el.find('.list').find('input:first').focus();
         }
     });
 
-    return ChoiceFilter;
+    return ChoiceTreeFilter;
 });
