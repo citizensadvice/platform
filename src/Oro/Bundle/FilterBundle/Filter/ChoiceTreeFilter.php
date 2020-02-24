@@ -59,22 +59,8 @@ class ChoiceTreeFilter extends AbstractFilter
     public function getMetadata()
     {
         $metadata = parent::getMetadata();
-
-        $entities = [];
-
-        if ($this->getOr('className') && $this->state) {
-            $data = $this->parseData($this->state);
-
-            $event = new ChoiceTreeFilterLoadDataEvent($this->getOr('className'), $data['value']);
-            $this->eventDispatcher->dispatch(ChoiceTreeFilterLoadDataEvent::EVENT_NAME, $event);
-            $entities = $event->getData();
-        }
-
         $metadata[FilterUtility::TYPE_KEY] = 'choice-tree';
-        $metadata['data'] = $entities;
-        $metadata['autocomplete_alias'] = $this->getAutocompleteAlias();
-        $metadata['autocomplete_url'] = $this->getAutocompleteUrl();
-        $metadata['renderedPropertyName'] = $this->getRenderedPropertyName();
+        $metadata['data'] = $this->params['options']['data'];
 
         return $metadata;
     }
