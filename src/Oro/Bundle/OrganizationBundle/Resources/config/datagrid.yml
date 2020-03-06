@@ -108,10 +108,10 @@ datagrid:
                     data_name: u.phone
                 businessUnitId:
                     label: oro.business_unit.label
-                    type: choice-tree
-                    autocomplete_alias: business_units_tree_search_handler
+                    type: choice-business-unit
                     data_name: u.owner
-                    className: 'Oro\Bundle\OrganizationBundle\Entity\BusinessUnit'
+                    options:
+                        data: @oro_organization.provider.filter.busines_unit_choice_tree->getList
                 createdAt:
                     type: datetime
                     data_name: u.createdAt
