@@ -106,12 +106,13 @@ datagrid:
                 phone:
                     type: string
                     data_name: u.phone
-                businessUnitId:
-                    label: oro.business_unit.label
-                    type: choice-business-unit
-                    data_name: u.owner
+                ownerName:
+                    type: choice
+                    data_name: ownerName
                     options:
-                        data: @oro_organization.provider.filter.busines_unit_choice_tree->getList
+                        field_options:
+                            choices: @oro_organization.provider.business_units_grid->getOwnerChoices
+                            translatable_options: false
                 createdAt:
                     type: datetime
                     data_name: u.createdAt
