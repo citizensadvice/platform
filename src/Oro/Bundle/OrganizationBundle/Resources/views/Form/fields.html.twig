@@ -17,11 +17,48 @@
 
 {% block oro_organizations_select_widget %}
     {% spaceless %}
-        <input type="hidden" name="{{ form.organizations.vars.full_name }}"
-               value="{{ {organizations: form.vars.selected_organizations}|json_encode }}">
-        {{ form_widget(form.businessUnits) }}
+        {% set attr = attr|merge({'class': attr.class is defined ? attr.class ~ ' horizontal' : 'horizontal'}) %}
+        {% set attr = attr|merge({'class': attr.class ~ ' validate-group'}) %}
+        <div {{ block('widget_container_attributes') }}>
+            <input type="hidden" name="{{ form.vars.full_name }}[organizations][]" value="{{ form.default_organization.vars.value }}" />
+            <input type="hidden" name="{{ form.vars.full_name }}[default_organization]" value="{{ form.default_organization.vars.value }}" />
+            {{ _self.renderOrganizationChildren(
+                form,
+                form.vars.organization_tree_ids[0].organization,
+                form.vars.organization_tree_ids,
+                form.vars.selected_business_units,
+                0
+            ) }}
+        </div>
     {% endspaceless %}
 {% endblock %}
+
+{% macro renderOrganizationChildren(form, org_id, children = {}, selected = {}, level = 1) %}
+    {% for child in children %}
+        <div class="oro-clearfix">
+            <span style="float:left;">
+            {% if level != 0 %}
+                {% for i in 1..level %}
+                    {% for si in 0..5 %}{{ '&nbsp;' }}{% endfor %}
+                {% endfor %}
+            {% endif %}
+            </span>
+            <input type="checkbox"
+                   id="{{ form.vars.id }}_businessUnits_{{ child.id }}"
+                   name="{{ form.vars.full_name }}[businessUnits][]"
+                   value="{{ child.id }}"
+                    {% if child.id in selected %} checked="checked" {% endif %}
+                   class="bu"
+                   data-organization="{{ org_id }}"
+            />
+            <label for="{{ form.vars.id }}_businessUnits_{{ child.id }}">{{ child.name }}</label>
+        </div>
+        {% if child.children is defined %}
+            {% set sublevel = level + 1 %}
+            {{ _self.renderOrganizationChildren(form, org_id, child.children, selected, sublevel) }}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
 
 {% block oro_type_choice_ownership_type_widget %}
     {% spaceless %}
@@ -86,12 +123,12 @@
                         {% set disable = 'disabled="disabled"' %}
                     {% endif %}
                 {% else %}
-                    {% if not (business_unit_ids[choice.value] is defined) or (entityId and entityId == choice.value) %}
+                    {% if not (choice.value in business_unit_ids) or (entityId and entityId == choice.value) %}
                         {% set disable = 'disabled="disabled"' %}
                     {% endif %}
                 {% endif %}
                 <option {{ disable }} value="{{ choice.value }}"
-                {% if choice is selectedchoice(value) %} selected="selected"{% endif %}>
+                        {% if choice is selectedchoice(value) %} selected="selected"{% endif %}>
                     {%- spaceless -%}
                         {% set label = translatable_options is defined and not translatable_options ? choice.label : choice.label|trans({}, translation_domain) %}
                         {# output is not escaped because it's done form in type "oro_business_unit_tree" #}
