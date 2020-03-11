@@ -53,12 +53,14 @@ datagrid:
                     data_name: dashboard.owner
                     autocomplete_alias: assigned_to_organization_users
                     renderedPropertyName: 'fullName'
-                    className: 'Oro\Bundle\UserBundle\Entity\User'
+                    options:
+                        data: @oro_user.provider.filter.user_choice_tree->getList
                 businessUnitId:
                     label: oro.business_unit.label
                     type: choice-business-unit
                     data_name: dashboard.owner
-                    className: 'Oro\Bundle\OrganizationBundle\Entity\BusinessUnit'
+                    options:
+                        data: @oro_organization.provider.filter.busines_unit_choice_tree->getList
                 createdAt:
                     type:      datetime
                     data_name: dashboard.createdAt

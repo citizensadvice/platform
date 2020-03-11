@@ -7,8 +7,6 @@ use Doctrine\ORM\PersistentCollection;
 
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormEvent;
-use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolverInterface;
@@ -16,7 +14,6 @@ use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 use Oro\Bundle\SecurityBundle\SecurityFacade;
 use Oro\Bundle\OrganizationBundle\Entity\Manager\BusinessUnitManager;
 use Oro\Bundle\UserBundle\Entity\User;
-use Oro\Bundle\OrganizationBundle\Entity\Organization;
 
 class OrganizationsSelectType extends AbstractType
 {
@@ -71,6 +68,7 @@ class OrganizationsSelectType extends AbstractType
         return $this->getBlockPrefix();
     }
 
+
     /**
      * {@inheritdoc}
      */
@@ -84,43 +82,32 @@ class OrganizationsSelectType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $builder->addEventListener(
-            FormEvents::PRE_SUBMIT,
-            function (FormEvent $event) {
-                $data = is_string($event->getData()) ? json_decode($event->getData(), true) : $event->getData();
-                if (isset($data['organizations'])) {
-                    $organizations = json_decode(reset($data['organizations']));
-                    $data['organizations'] = is_object($organizations)
-                        ? $organizations->organizations
-                        : $data['organizations'];
-                }
-                $event->setData($data);
-            }
+        $builder->add(
+            'default_organization',
+            'hidden',
+            [
+                'mapped' => false,
+                'data'   => $this->securityFacade->getOrganizationId(),
+            ]
         );
-
         $builder->add(
             'organizations',
             'entity',
             [
                 'class'    => 'OroOrganizationBundle:Organization',
                 'property' => 'name',
-                'multiple' => true
+                'multiple' => true,
+                'expanded' => true,
+                'choices'  => $this->getOrganizationOptions(),
             ]
         );
         $builder->add(
             'businessUnits',
-            'oro_type_business_unit_select_autocomplete',
+            'oro_business_unit_tree',
             [
+                'multiple' => true,
+                'expanded' => true,
                 'required' => false,
-                'label' => 'oro.user.form.business_units.label',
-                'autocomplete_alias' => 'business_units_tree_search_handler',
-                'configs'            => [
-                    'multiple'    => true,
-                    'width'       => '400px',
-                    'component'   => 'bu-tree-autocomplete',
-                    'placeholder' => 'oro.dashboard.form.choose_business_unit',
-                    'allowClear'  => true,
-                ]
             ]
         );
     }
@@ -146,10 +133,18 @@ class OrganizationsSelectType extends AbstractType
             )->getValues();
         }
 
-        $view->vars['default_organization'] = $this->securityFacade->getOrganizationId();
         $view->vars['selected_organizations']  = [$this->securityFacade->getOrganizationId()];
         $view->vars['selected_business_units'] = $businessUnitData;
-        $view->vars['accordion_enabled'] = $this->buManager->getTreeNodesCount($buTree) > 1000;
+    }
+
+    /**
+     * Prepare choice options for a select
+     *
+     * @return array
+     */
+    protected function getOrganizationOptions()
+    {
+        return $this->em->getRepository('OroOrganizationBundle:Organization')->getEnabled();
     }
 
     /**
