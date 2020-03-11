@@ -13,6 +13,7 @@ use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 use Oro\Bundle\SecurityBundle\SecurityFacade;
 use Oro\Bundle\OrganizationBundle\Entity\Manager\BusinessUnitManager;
+use Oro\Bundle\UserBundle\Entity\User;
 
 class OrganizationsSelectType extends AbstractType
 {
@@ -144,5 +145,13 @@ class OrganizationsSelectType extends AbstractType
     protected function getOrganizationOptions()
     {
         return $this->em->getRepository('OroOrganizationBundle:Organization')->getEnabled();
+    }
+
+    /**
+     * @return User
+     */
+    protected function getLoggedInUser()
+    {
+        return $this->securityFacade->getLoggedUser();
     }
 }
