@@ -50,19 +50,23 @@ class BusinessUnitType extends AbstractType
             )
             ->add(
                 'parentBusinessUnit',
-                'oro_type_business_unit_select_autocomplete',
+                'oro_business_unit_tree_select',
                 [
-                    'required' => false,
                     'label' => 'oro.organization.businessunit.parent.label',
-                    'autocomplete_alias' => 'business_units_owner_search_handler',
                     'empty_value' => 'oro.business_unit.form.none_business_user',
-                    'configs' => [
-                        'multiple' => false,
-                        'component'   => 'tree-autocomplete',
-                        'width'       => '400px',
-                        'placeholder' => 'oro.dashboard.form.choose_business_unit',
-                        'allowClear'  => true
-                    ]
+                    'property_path' => 'owner',
+                    'required' => 'false',
+                    'choices' => $this->getBusinessUnitChoices(
+                        $this->businessUnitManager->getBusinessUnitsTree(
+                            null,
+                            $this->getOrganizationId()
+                        )
+                    ),
+                    'business_unit_ids' => $this->businessUnitManager->getBusinessUnitIds(
+                        null,
+                        $this->getOrganizationId()
+                    ),
+                    'translatable_options' => false
                 ]
             )
             ->add(
@@ -148,5 +152,19 @@ class BusinessUnitType extends AbstractType
     protected function getOrganizationId()
     {
         return $this->securityFacade->getOrganizationId();
+    }
+
+    protected function getBusinessUnitChoices($options, $level = 0)
+    {
+        $choices = [];
+        $blanks  = str_repeat('&nbsp;&nbsp;&nbsp;', $level);
+        foreach ($options as $option) {
+            $choices += [$option['id'] => $blanks . $option['name']];
+            if (isset($option['children'])) {
+                $choices += $this->getBusinessUnitChoices($option['children'], $level + 1);
+            }
+        }
+
+        return $choices;
     }
 }
