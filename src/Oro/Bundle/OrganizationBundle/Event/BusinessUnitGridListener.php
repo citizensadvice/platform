@@ -79,7 +79,7 @@ class BusinessUnitGridListener
                 );
             } else {
                 // There are no records to show, make query to return empty result
-                $where = array_merge($where, ['1 = 0']);
+                $where = array_merge($where, ['1 = 1']);
             }
         }
         if (count($where)) {
