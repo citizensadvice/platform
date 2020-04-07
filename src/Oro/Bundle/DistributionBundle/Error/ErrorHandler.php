@@ -80,6 +80,21 @@ class ErrorHandler
             return true;
         }
 
+        /**
+         * PHP 7.2 introduced a new warning when calling the "count()" function on non countable
+         * parameters. This warning does not change the behaviour of count when called in this 
+         * way, but rather is an alert to prevent accidental masking of errors.
+         * 
+         * Since the ORO upgrade, we are now observing these errors comming from Symfony Core,
+         * Twig and the ORO frameworks. As such, it would be too large a task to individually
+         * suppress them. Instead, we can safely globally silence the warning here.
+         * 
+         * @see https://www.php.net/manual/en/migration72.incompatible.php#migration72.incompatible.warn-on-non-countable-types
+         */
+        if ($string == 'count(): Parameter must be an array or an object that implements Countable') {
+            return true;
+        }
+
         return false;
     }
 
