@@ -95,6 +95,21 @@ class ErrorHandler
             return true;
         }
 
+        /**
+         * PHP 7.3 introduced a new warning when calling the "continue" operator as part of switch
+         * control flow. This warning does not change the behaviour of continue when called in this 
+         * way, but rather is an alert to prevent accidental masking of errors.
+         * 
+         * As with the above, this is used extensively in code. As such, it would be too large 
+         * a task to individually suppress them. Instead, we can safely globally silence 
+         * the warning here.
+         * 
+         * @see https://www.php.net/manual/en/migration73.incompatible.php#migration73.incompatible.core.continue-targeting-switch
+         */
+        if ($string == '"continue" targeting switch is equivalent to "break". Did you mean to use "continue 2"?') {
+            return true;
+        }
+
         return false;
     }
 
