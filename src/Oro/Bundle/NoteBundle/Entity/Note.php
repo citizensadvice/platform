@@ -75,38 +75,11 @@ class Note extends ExtendNote implements DatesAwareInterface, UpdatedByAwareInte
     protected $organization;
 
     /**
-     * @var string $message
-     *
-     * @ORM\Column(name="message", type="text", nullable=false)
-     */
-    protected $message;
-
-    /**
      * @return int
      */
     public function getId()
     {
         return $this->id;
-    }
-
-    /**
-     * @param string $message
-     *
-     * @return Note
-     */
-    public function setMessage($message)
-    {
-        $this->message = $message;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMessage()
-    {
-        return $this->message;
     }
 
     /**
