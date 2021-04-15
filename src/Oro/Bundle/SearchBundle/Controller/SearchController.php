@@ -7,7 +7,6 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
-use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -15,7 +14,6 @@ use Oro\Bundle\SearchBundle\Provider\ResultStatisticsProvider;
 use Oro\Bundle\SecurityBundle\Annotation\Acl;
 use Oro\Bundle\SecurityBundle\Annotation\AclAncestor;
 use Oro\Bundle\SearchBundle\Event\PrepareResultItemEvent;
-use Symfony\Component\Translation\TranslatorInterface;
 
 class SearchController extends Controller
 {
@@ -111,14 +109,13 @@ class SearchController extends Controller
         }
 
         $entities = $this->get('oro_search.index')->getAllowedEntitiesListAliases();
-
         $configManager = $this->get('oro_entity_config.config_manager');
 
         $icons = [];
 
         foreach ($entities as $className => $alias) {
             $entityConfig = new EntityConfigId('entity', $className);
-            $configs      = $configManager->getConfig($entityConfig);
+            $configs = $configManager->getConfig($entityConfig);
 
             $icon = $configs->get('icon');
 
