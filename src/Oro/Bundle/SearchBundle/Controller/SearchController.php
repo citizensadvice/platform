@@ -2,10 +2,12 @@
 
 namespace Oro\Bundle\SearchBundle\Controller;
 
+use Oro\Bundle\EntityConfigBundle\Config\Id\EntityConfigId;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -13,6 +15,7 @@ use Oro\Bundle\SearchBundle\Provider\ResultStatisticsProvider;
 use Oro\Bundle\SecurityBundle\Annotation\Acl;
 use Oro\Bundle\SecurityBundle\Annotation\AclAncestor;
 use Oro\Bundle\SearchBundle\Event\PrepareResultItemEvent;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class SearchController extends Controller
 {
@@ -103,26 +106,32 @@ class SearchController extends Controller
         if (!$string) {
             return [
                 'searchString' => $string,
-                'groupedResults' => []
+                'entities' => []
             ];
         }
 
-        /** @var $resultProvider ResultStatisticsProvider */
-        $resultProvider = $this->get('oro_search.provider.result_statistics_provider');
-        $groupedResults = $resultProvider->getGroupedResults($string);
-        $selectedResult = null;
+        $entities = $this->get('oro_search.index')->getAllowedEntitiesListAliases();
 
-        foreach ($groupedResults as $alias => $type) {
-            if ($alias == $from) {
-                $selectedResult = $type;
+        $configManager = $this->get('oro_entity_config.config_manager');
+
+        $icons = [];
+
+        foreach ($entities as $className => $alias) {
+            $entityConfig = new EntityConfigId('entity', $className);
+            $configs      = $configManager->getConfig($entityConfig);
+
+            $icon = $configs->get('icon');
+
+            if ($icon) {
+                $icons[$alias] = $icon;
             }
         }
 
         return array(
             'from'           => $from,
             'searchString'   => $string,
-            'groupedResults' => $groupedResults,
-            'selectedResult' => $selectedResult
+            'entities'       => $entities,
+            'icons'          => $icons
         );
     }
 }
