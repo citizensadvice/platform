@@ -737,6 +737,8 @@ class User extends ExtendUser implements
     }
 
     /**
+     * Ensure any User emails are deleted when the User is.
+     *
      * @ORM\PreRemove
      */
     public function preRemove(LifecycleEventArgs $args)
@@ -746,6 +748,8 @@ class User extends ExtendUser implements
         foreach ($this->emails as $email) {
             $entityManager->remove($email);
         }
+
+        $entityManager->remove($this->email);
     }
 
     /**
