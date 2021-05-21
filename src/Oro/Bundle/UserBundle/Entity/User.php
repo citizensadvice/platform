@@ -749,7 +749,9 @@ class User extends ExtendUser implements
             $entityManager->remove($email);
         }
 
-        $entityManager->remove($this->email);
+        $email = $entityManager->getRepository('OroEmailBundle:EmailAddress')->findOneBy(['email' => $this->email]);
+
+        $entityManager->remove($email);
     }
 
     /**
