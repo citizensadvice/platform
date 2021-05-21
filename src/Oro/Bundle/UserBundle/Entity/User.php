@@ -4,6 +4,7 @@ namespace Oro\Bundle\UserBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -732,6 +733,18 @@ class User extends ExtendUser implements
 
         if (array_diff_key($event->getEntityChangeSet(), array_flip($excludedFields))) {
             $this->updatedAt = new \DateTime('now', new \DateTimeZone('UTC'));
+        }
+    }
+
+    /**
+     * @ORM\PreRemove
+     */
+    public function preRemove(LifecycleEventArgs $args)
+    {
+        $entityManager = $args->getEntityManager();
+
+        foreach ($this->emails as $email) {
+            $entityManager->remove($email);
         }
     }
 
