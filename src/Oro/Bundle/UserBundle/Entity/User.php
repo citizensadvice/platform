@@ -4,6 +4,7 @@ namespace Oro\Bundle\UserBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -352,7 +353,7 @@ class User extends ExtendUser implements
     /**
      * @var Email[]|Collection
      *
-     * @ORM\OneToMany(targetEntity="Email", mappedBy="user", orphanRemoval=true, cascade={"persist"})
+     * @ORM\OneToMany(targetEntity="Email", mappedBy="user", orphanRemoval=true, cascade={"persist"}, orphanRemoval=true)
      * @ConfigField(
      *      defaultValues={
      *          "dataaudit"={
@@ -733,6 +734,24 @@ class User extends ExtendUser implements
         if (array_diff_key($event->getEntityChangeSet(), array_flip($excludedFields))) {
             $this->updatedAt = new \DateTime('now', new \DateTimeZone('UTC'));
         }
+    }
+
+    /**
+     * Ensure any User emails are deleted when the User is.
+     *
+     * @ORM\PreRemove
+     */
+    public function preRemove(LifecycleEventArgs $args)
+    {
+        $entityManager = $args->getEntityManager();
+
+        foreach ($this->emails as $email) {
+            $entityManager->remove($email);
+        }
+
+        $email = $entityManager->getRepository('OroEmailBundle:EmailAddress')->findOneBy(['email' => $this->email]);
+
+        $entityManager->remove($email);
     }
 
     /**
