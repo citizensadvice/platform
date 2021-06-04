@@ -18,28 +18,29 @@
         </form>
     </div>
 
-    {% if groupedResults is defined and '' in groupedResults|keys and groupedResults[''].count > 0 or groupedResults|length > 1 %}
-        <div class="oro-page collapsible-sidebar clearfix">
-            <div class="oro-page-sidebar search-entity-types-column dropdown">
-                <a href="javascript: void(0);" class="dropdown-toggle" data-toggle="dropdown">
-                    <i class="icon-filter"></i>
-                    {% if selectedResult %}
-                        {% if selectedResult.class %}{{ selectedResult.label }}{% else %}{{ 'oro.search.result.all'|trans }}{% endif %}
-                        ({{ selectedResult.count }}) <i class="icon-sort-down"></i>
-                    {% endif %}
-                </a>
-                <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu">
-                {% for alias, type in groupedResults %}
-                    {% set selected = alias == from %}
-                    {% if type.class %}
-                        {% set label = type.label %}
-                        {% set iconClass = type.icon %}
-                    {% else %}
-                        {% set label = 'oro.search.result.all'|trans %}
-                        {% set iconClass = 'icon-search' %}
-                    {% endif %}
+    <div class="oro-page collapsible-sidebar clearfix">
+        <div class="oro-page-sidebar search-entity-types-column dropdown">
+            <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu">
+                {% set searchEntities = [] %}
+                {% for className, alias in entities %}
+                    {% set entityType = oro_entity_config_value(className, 'label')|trans %}
+                    {% set searchEntities = searchEntities|merge({(alias) : entityType}) %}
+                {% endfor %}
 
-                    {% if iconClass is empty %}
+                <li{% if not from %} class="selected"{% endif %}>
+                    <a href="{{ path('oro_search_results', { search: searchString }) }}">
+                        {% if not from %}<i class="icon-chevron-right pull-right"></i>{% endif %}
+                        <i class="icon-search"></i>
+                        {{ 'oro.search.result.all'|trans }}
+                    </a>
+                </li>
+
+                {% for alias, name in searchEntities|sort %}
+                    {% set selected = alias == from %}
+
+                    {% if icons[alias] is defined %}
+                        {% set iconClass = icons[alias] %}
+                    {% else %}
                         {% set iconClass = 'icon-file' %}
                     {% endif %}
 
@@ -47,23 +48,18 @@
                         <a href="{{ path('oro_search_results', { from: alias, search: searchString }) }}">
                             {% if selected %}<i class="icon-chevron-right pull-right"></i>{% endif %}
                             <i class="{{ iconClass }}"></i>
-                            {{ label }} ({{ type.count }})
+                            {{ name }}
                         </a>
                     </li>
                 {% endfor %}
-                </ul>
-            </div>
-            <div class="oro-page-body search-results-column">
-                <div id="search-result-grid">
-                    {{ dataGrid.renderGrid(gridName, {from: from, search: searchString}, { cssClass: 'search-grid grid-without-header' }) }}
-                </div>
+            </ul>
+        </div>
+
+        <div class="oro-page-body search-results-column">
+            <div id="search-result-grid">
+                {{ dataGrid.renderGrid(gridName, {from: from, search: searchString}, { cssClass: 'search-grid grid-without-header' }) }}
             </div>
         </div>
-    {% else %}
-    <div class="search-no-results">
-        {% trans %}No results were found to match your search.{% endtrans %}
-        <br />
-        {% trans %}Try modifying your search criteria or creating a new ...{% endtrans %}
     </div>
-    {% endif %}
+
 {% endblock %}
