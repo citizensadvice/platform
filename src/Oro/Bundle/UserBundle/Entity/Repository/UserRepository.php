@@ -12,9 +12,9 @@ class UserRepository extends EntityRepository implements EmailAwareRepository
 {
     public function findAllMatching($query, $limit = 5, $offset = 0, $page = 0)
     {
-        $query = $this->createQueryBuilder('c')
-            ->andWhere('c.username LIKE :query')
-            ->orderBy('c.username', 'ASC')
+        $query = $this->createQueryBuilder('u')
+            ->andWhere('u.username LIKE :query')
+            ->orderBy('u.username', 'ASC')
             ->setParameter('query', '%'.$query.'%')
             ->setMaxResults($limit)
             ->setFirstResult($offset);
