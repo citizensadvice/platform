@@ -2,6 +2,7 @@
 
 namespace Oro\Bundle\SearchBundle\Controller;
 
+use Oro\Bundle\EntityConfigBundle\Config\Id\EntityConfigId;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 
@@ -103,26 +104,31 @@ class SearchController extends Controller
         if (!$string) {
             return [
                 'searchString' => $string,
-                'groupedResults' => []
+                'entities' => []
             ];
         }
 
-        /** @var $resultProvider ResultStatisticsProvider */
-        $resultProvider = $this->get('oro_search.provider.result_statistics_provider');
-        $groupedResults = $resultProvider->getGroupedResults($string);
-        $selectedResult = null;
+        $entities = $this->get('oro_search.index')->getAllowedEntitiesListAliases();
+        $configManager = $this->get('oro_entity_config.config_manager');
 
-        foreach ($groupedResults as $alias => $type) {
-            if ($alias == $from) {
-                $selectedResult = $type;
+        $icons = [];
+
+        foreach ($entities as $className => $alias) {
+            $entityConfig = new EntityConfigId('entity', $className);
+            $configs = $configManager->getConfig($entityConfig);
+
+            $icon = $configs->get('icon');
+
+            if ($icon) {
+                $icons[$alias] = $icon;
             }
         }
 
         return array(
             'from'           => $from,
             'searchString'   => $string,
-            'groupedResults' => $groupedResults,
-            'selectedResult' => $selectedResult
+            'entities'       => $entities,
+            'icons'          => $icons
         );
     }
 }
