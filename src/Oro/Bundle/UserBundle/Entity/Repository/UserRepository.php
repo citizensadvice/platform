@@ -13,9 +13,8 @@ class UserRepository extends EntityRepository implements EmailAwareRepository
     public function findAllMatching($query, $limit = 5, $offset = 0, $page = 0)
     {
         $query = $this->createQueryBuilder('u')
-            ->andWhere('u.username LIKE :query')
-            ->orderBy('u.username', 'ASC')
-            ->setParameter('query', '%'.$query.'%')
+            ->andWhere("MATCH (u.username) AGAINST (:query IN BOOLEAN MODE) > 0")
+            ->setParameter('query', $query.'*')
             ->setMaxResults($limit)
             ->setFirstResult($offset);
 
@@ -25,9 +24,24 @@ class UserRepository extends EntityRepository implements EmailAwareRepository
             $query->setFirstResult($offset);
         }
 
-        return $query->getQuery()->getResult();
+        return $query;
     }
-    
+
+    public function findAllWithoutQuery($limit = 5, $offset = 0, $page = 0)
+    {
+        $query = $this->createQueryBuilder('u')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        if ($page > 0) {
+            $query->setFirstResult($limit * ($page - 1));
+        } elseif ($offset > 0) {
+            $query->setFirstResult($offset);
+        }
+
+        return $query;
+    }
+
     /**
      * @param bool|null $enabled
      * @return int
