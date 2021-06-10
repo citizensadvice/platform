@@ -10,6 +10,28 @@ use Oro\Bundle\UserBundle\Entity\User;
 
 class UserRepository extends EntityRepository implements EmailAwareRepository
 {
+    public function findAllMatching($query, $limit = 5, $offset = 0)
+    {
+        $query = $this->createQueryBuilder('u')
+            ->andWhere("MATCH (u.username) AGAINST (:query IN BOOLEAN MODE) > 0")
+            ->setParameter('query', $query.'*')
+            ->orderBy('u.username')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        return $query;
+    }
+
+    public function findAllWithoutQuery($limit = 5, $offset = 0)
+    {
+        $query = $this->createQueryBuilder('u')
+            ->orderBy('u.username')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        return $query;
+    }
+
     /**
      * @param bool|null $enabled
      * @return int
