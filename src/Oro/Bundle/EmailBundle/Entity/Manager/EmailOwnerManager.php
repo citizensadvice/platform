@@ -232,8 +232,13 @@ class EmailOwnerManager
                 $this->emailAddressManager->getEntityManager()->persist($emailAddress);
                 $updatedEmailAddresses[] = $emailAddress;
             } elseif ($emailAddress->getOwner() !== $newOwner) {
-                $emailAddress->setOwner($newOwner);
-                $updatedEmailAddresses[] = $emailAddress;
+                // If newOwner is null, delete the address to prevent a floating record
+                if ($newOwner === null) {
+                    $this->emailAddressManager->getEntityManager()->remove($emailAddress);
+                } else {
+                    $emailAddress->setOwner($newOwner);
+                    $updatedEmailAddresses[] = $emailAddress;
+                }
             }
         }
 
