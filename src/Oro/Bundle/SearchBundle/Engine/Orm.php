@@ -199,6 +199,10 @@ class Orm extends AbstractEngine implements ProgressLoggerAwareInterface
                 continue;
             }
 
+            if (isset($data['integer']['isAnonymised'])) {
+                continue;
+            }
+
             $class = $this->doctrineHelper->getEntityClass($entity);
             $id    = $this->doctrineHelper->getSingleEntityIdentifier($entity);
 
