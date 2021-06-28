@@ -426,6 +426,22 @@ class User extends ExtendUser implements
     protected $updatedAt;
 
     /**
+     * Many Users have Many Users.
+     * @ORM\ManyToMany(targetEntity="User", mappedBy="volunteers", cascade={"persist", "remove"})
+     */
+    protected $leaders;
+
+    /**
+     * Many Users have many Users.
+     * @ORM\ManyToMany(targetEntity="User", inversedBy="leaders", cascade={"persist", "remove"})
+     * @ORM\JoinTable(name="ca_associated_user",
+     *      joinColumns={@ORM\JoinColumn(name="teamleader_id", referencedColumnName="id")},
+     *      inverseJoinColumns={@ORM\JoinColumn(name="volunteer_id", referencedColumnName="id")}
+     *      )
+     */
+    protected $volunteers;
+
+    /**
      * @var OrganizationInterface
      *
      * Organization that user logged in
@@ -442,6 +458,8 @@ class User extends ExtendUser implements
         $this->emailOrigins = new ArrayCollection();
         $this->apiKeys = new ArrayCollection();
         $this->groups = new ArrayCollection();
+        $this->leaders = new ArrayCollection();
+        $this->volunteers = new ArrayCollection();
     }
 
     /**
@@ -1203,5 +1221,87 @@ class User extends ExtendUser implements
     public function getFullName()
     {
         return sprintf('%s %s', $this->getFirstName(), $this->getLastName());
+    }
+
+    /**
+     * @return ArrayCollection
+     */
+    public function getLeaders()
+    {
+        return $this->leaders;
+    }
+
+    /**
+     * Add User to User
+     *
+     * @param User $user
+     *
+     * @return User
+     */
+    public function addLeader(User $user)
+    {
+        if (!$this->leaders->contains($user)) {
+            $this->leaders->add($user);
+            $user->addVolunteer($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Delete User from User
+     *
+     * @param User $user
+     *
+     * @return User
+     */
+    public function removeLeader(User $user)
+    {
+        if ($this->leaders->contains($user)) {
+            $this->leaders->removeElement($user);
+            $user->removeVolunteer($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return ArrayCollection
+     */
+    public function getVolunteers()
+    {
+        return $this->volunteers;
+    }
+
+    /**
+     * Add User to User
+     *
+     * @param User $user
+     *
+     * @return User
+     */
+    public function addVolunteer(User $user)
+    {
+        if (!$this->volunteers->contains($user)) {
+            $this->volunteers->add($user);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Delete User from User
+     *
+     * @param User $user
+     *
+     * @return User
+     */
+    public function removeVolunteer(User $user)
+    {
+        if ($this->volunteers->contains($user)) {
+            $this->volunteers->removeElement($user);
+        }
+
+        return $this;
     }
 }
