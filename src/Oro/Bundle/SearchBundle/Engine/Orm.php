@@ -382,13 +382,24 @@ DELETE FROM oro_search_index_integer  WHERE item_id IN (SELECT DISTINCT id FROM 
 DELETE FROM oro_search_index_datetime WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
 DELETE FROM oro_search_index_decimal  WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
 DELETE FROM oro_search_index_text     WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
-DELETE FROM oro_search_item           WHERE entity = ?;
+DELETE FROM oro_search_item           WHERE entity = ? AND record_id = ?;
 EOF;
 
         $this->getIndexManager()->getConnection()->executeQuery(
             $query,
-            [$entityName, $id, $entityName, $id, $entityName, $id, $entityName, $id, $entityName],
-            [\PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR]
+            [$entityName, $id, $entityName, $id, $entityName, $id, $entityName, $id, $entityName, $id],
+            [
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT
+            ]
         );
     }
 
