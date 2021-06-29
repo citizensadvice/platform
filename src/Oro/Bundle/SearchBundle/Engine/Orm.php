@@ -199,10 +199,6 @@ class Orm extends AbstractEngine implements ProgressLoggerAwareInterface
                 continue;
             }
 
-            if (isset($data['integer']['isAnonymised'])) {
-                continue;
-            }
-
             $class = $this->doctrineHelper->getEntityClass($entity);
             $id    = $this->doctrineHelper->getSingleEntityIdentifier($entity);
 
@@ -221,11 +217,15 @@ class Orm extends AbstractEngine implements ProgressLoggerAwareInterface
                     ->setAlias($alias);
             }
 
-            $item->setTitle($this->getEntityTitle($entity))
+            if (isset($data['integer']['isAnonymised'])) {
+                $this->clearSearchIndexForSingleEntity($class, $id);
+            } else {
+                $item->setTitle($this->getEntityTitle($entity))
                 ->setChanged(false)
                 ->saveItemData($data);
 
-            $this->dbalStorer->addItem($item);
+                $this->dbalStorer->addItem($item);
+            }
 
             $hasSavedEntities = true;
         }
@@ -366,6 +366,29 @@ EOF;
             $query,
             [$entityName, $entityName, $entityName, $entityName, $entityName],
             [\PDO::PARAM_STR, \PDO::PARAM_STR, \PDO::PARAM_STR, \PDO::PARAM_STR, \PDO::PARAM_STR]
+        );
+    }
+
+    /**
+     * Clear all search indexes for a specific entity given a class and id
+     * 
+     * @param string $entityName
+     * @param int $id
+     */
+    protected function clearSearchIndexForSingleEntity($entityName, $id)
+    {
+        $query = <<<EOF
+DELETE FROM oro_search_index_integer  WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
+DELETE FROM oro_search_index_datetime WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
+DELETE FROM oro_search_index_decimal  WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
+DELETE FROM oro_search_index_text     WHERE item_id IN (SELECT DISTINCT id FROM oro_search_item WHERE entity = ? AND record_id = ?);
+DELETE FROM oro_search_item           WHERE entity = ?;
+EOF;
+
+        $this->getIndexManager()->getConnection()->executeQuery(
+            $query,
+            [$entityName, $id, $entityName, $id, $entityName, $id, $entityName, $id, $entityName],
+            [\PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR, \PDO::PARAM_INT, \PDO::PARAM_STR]
         );
     }
 
