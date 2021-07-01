@@ -23,3 +23,7 @@ Oro\Bundle\CalendarBundle\Entity\CalendarEvent:
             name:                   end
             target_type:            datetime
             target_fields:          [end]
+        -
+            name:                   isAnonymised
+            target_type:            integer
+            target_fields:          [isAnonymised]
