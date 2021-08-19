@@ -163,9 +163,13 @@ define(function(require) {
                 var observerContext = $("[data-ftid*='phoneContactDetails']");
             }
 
+            var that = this;
+
             // This prevents the observer code from executing if no relevant nodes are found
             if (observerContext[0]) {
-                var observer = new MutationObserver(() => { this.initPopover(container); })
+                var observer = new MutationObserver(function() {
+                    that.initPopover(container);
+                });
                 observer.observe(
                     observerContext[0],
                     {childList: true, subtree: true}
