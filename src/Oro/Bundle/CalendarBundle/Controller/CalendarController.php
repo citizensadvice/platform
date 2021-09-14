@@ -17,6 +17,7 @@ use Oro\Bundle\CalendarBundle\Provider\CalendarDateTimeConfigProvider;
 
 use Oro\Bundle\UserBundle\Entity\User;
 use Oro\Bundle\OrganizationBundle\Entity\Organization;
+use Symfony\Component\HttpFoundation\Request;
 
 class CalendarController extends Controller
 {
@@ -27,7 +28,7 @@ class CalendarController extends Controller
      * @Template
      * @AclAncestor("oro_calendar_view")
      */
-    public function viewDefaultAction()
+    public function viewDefaultAction(Request $request)
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -40,6 +41,20 @@ class CalendarController extends Controller
         $repo     = $em->getRepository('OroCalendarBundle:Calendar');
 
         $calendar = $repo->findDefaultCalendar($user->getId(), $organization->getId());
+
+        // Every user should have a calendar by default, if not redirect back with an error
+        if (!$calendar) {
+            $referer = $request->headers->get('referer');
+
+            if ($referer == null) {
+                $referer = 'orocrm_task_index';
+            }
+
+            $session = $request->getSession();
+            $session->getFlashBag()->add('error', 'A calendar could not be found for your user.');
+
+            return $this->redirect($referer);
+        }
 
         return $this->viewAction($calendar);
     }
