@@ -81,6 +81,10 @@ class CalendarEventApiHandler
                     $this->convertInvitedUsersToAttendees($entity, $this->form->get('invitedUsers')->getData());
                 }
 
+                if ($entity->getTitle() === 'placeholder') {
+                    $entity->setTitle($entity->getType()->getName());
+                }
+
                 // TODO: should be refactored after finishing BAP-8722
                 // Contexts handling should be moved to common for activities form handler
                 if ($this->form->has('contexts') && $this->request->request->has('contexts')) {
