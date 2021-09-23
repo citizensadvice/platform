@@ -97,8 +97,6 @@ define(function(require) {
             $container.find('[data-toggle="tooltip"]').tooltip();
 
             this.initPopover($container);
-
-            this.observeWitnessChanges($container);
         },
 
         initPopover: function(container) {
@@ -148,33 +146,6 @@ define(function(require) {
             mediator.once('page:request', function() {
                 $('body').off('.popover-hide .popover-prevent');
             });
-        },
-
-        /**
-         * This function is used to detect changes to Witness collections
-         * or Witness phone collections so that new tooltips can be initialized.
-         * 
-         * @param {string|HTMLElement|jQuery.Element} container 
-         */
-        observeWitnessChanges: function(container) {
-            var observerContext = $("[data-ftid='trial_witnesses']");
-
-            if (!observerContext[0]) {
-                var observerContext = $("[data-ftid*='phoneContactDetails']");
-            }
-
-            var that = this;
-
-            // This prevents the observer code from executing if no relevant nodes are found
-            if (observerContext[0]) {
-                var observer = new MutationObserver(function() {
-                    that.initPopover(container);
-                });
-                observer.observe(
-                    observerContext[0],
-                    {childList: true, subtree: true}
-                );
-            }
         },
 
         hideProgressBar: function() {
