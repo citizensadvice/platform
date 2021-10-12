@@ -83,7 +83,7 @@ class MassDeleteLimiter
         $resultsForSelected = new DeletionIterableResult($query);
         $deletableQuery     = $this->cloneQuery($query);
 
-        $accessLimitedQuery = $this->aclHelper->apply($deletableQuery, 'DELETE');
+        $accessLimitedQuery = $this->aclHelper->apply($deletableQuery, 'DELETE', false);
         $resultsForDelete   = new DeletionIterableResult($accessLimitedQuery);
 
         return new MassDeleteLimitResult($resultsForSelected->count(), $resultsForDelete->count());
