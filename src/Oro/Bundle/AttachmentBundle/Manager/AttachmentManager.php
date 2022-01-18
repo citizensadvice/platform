@@ -205,12 +205,16 @@ class AttachmentManager
     /**
      * Get attachment url
      *
+     * @param string $parentClass
+     * @param string $parentId
      * @param File   $entity
      * @param string $type
      * @param bool   $absolute
      * @return string
      */
     public function getAttachment(
+        $parentClass,
+        $parentId,
         File $entity,
         $type = 'get',
         $absolute = false
@@ -222,6 +226,8 @@ class AttachmentManager
                 implode(
                     '|',
                     [
+                        $parentClass,
+                        $parentId,
                         $entity->getId(),
                         $type,
                     ]
@@ -253,7 +259,7 @@ class AttachmentManager
     public function decodeAttachmentUrl($urlString)
     {
         if (!($decodedString = base64_decode(str_replace('_', '/', $urlString)))
-            || count($result = explode('|', $decodedString)) < 2
+            || count($result = explode('|', $decodedString)) < 4
         ) {
             throw new \LogicException('Input string is not correct attachment encoded parameters');
         }

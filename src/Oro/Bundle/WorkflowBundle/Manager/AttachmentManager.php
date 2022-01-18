@@ -2,7 +2,6 @@
 
 namespace Oro\Bundle\WorkflowBundle\Manager;
 
-use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Security\Core\Util\ClassUtils;
 
 use Oro\Bundle\AttachmentBundle\Entity\File;
@@ -42,15 +41,9 @@ class AttachmentManager extends BaseManager
             return;
         }
 
-        if ($parentEntity instanceof PersistentCollection) {
-            return $this->getAttachment(
-                $entity,
-                $type,
-                $absolute
-            );
-        }
-
         return $this->getAttachment(
+            ClassUtils::getRealClass($parentEntity),
+            $parentEntity->getId(),
             $entity,
             $type,
             $absolute
