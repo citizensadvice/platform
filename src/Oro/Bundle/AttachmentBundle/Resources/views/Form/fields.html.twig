@@ -11,6 +11,12 @@
         {% if value is not empty %}
             {% if value.originalFilename is not empty %}
                 {% set parentEntity = form.parent.vars.value %}
+
+                {# This allows us to handle files in a collection #}
+                {% if is_collection(parentEntity) %}
+                    {% set parentEntity = form.parent.parent.vars.value %}
+                {% endif %}
+
                 {% set fieldName = form.vars.name %}
 
                 {% if form.emptyFile is defined%}
@@ -69,7 +75,7 @@
                 {% set parentEntity = form.parent.vars.value %}
 
                 {# This allows us to handle files in a collection #}
-                {% if form.parent.parent is not null %}
+                {% if is_collection(parentEntity) %}
                     {% set parentEntity = form.parent.parent.vars.value %}
                 {% endif %}
 
