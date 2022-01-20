@@ -2,6 +2,7 @@
 
 namespace Oro\Bundle\AttachmentBundle\Form\EventSubscriber;
 
+use CitizensAdvice\Bundle\WitnessBundle\Entity\Witness;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -108,6 +109,11 @@ class FileSubscriber implements EventSubscriberInterface
             if (!$dataClass) {
                 $dataClass = $form->getParent()->getParent()->getConfig()->getDataClass();
             }
+        }
+
+        // Allow us to override the mimetypes for supportNotes
+        if ($dataClass === Witness::class && $form->getParent()->getName() === 'supportNotes') {
+            $fieldName = 'supportNotes';
         }
 
         $violations = $this->validator->validate($entity->getFile(), $dataClass, $fieldName);
