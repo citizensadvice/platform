@@ -24,28 +24,15 @@ class FileController extends Controller
      */
     public function getAttachmentAction($codedString, $extension)
     {
-        list($parentClass, $fieldName, $parentId, $type, $filename) = $this->get(
-            'oro_attachment.manager'
-        )->decodeAttachmentUrl($codedString);
+        list($parentClass, $parentId, $id, $type) = $this->get('oro_attachment.manager')->decodeAttachmentUrl($codedString);
+
         $parentEntity = $this->getDoctrine()->getRepository($parentClass)->find($parentId);
+
         if (!$this->get('oro_security.security_facade')->isGranted('VIEW', $parentEntity)) {
             throw new AccessDeniedException();
         }
 
-        $accessor   = PropertyAccess::createPropertyAccessor();
-        $attachment = $accessor->getValue($parentEntity, $fieldName);
-        if ($attachment instanceof Collection) {
-            foreach ($attachment as $attachmentEntity) {
-                if ($attachmentEntity->getOriginalFilename() === $filename) {
-                    $attachment = $attachmentEntity;
-                    break;
-                }
-            }
-        }
-
-        if ($attachment instanceof Collection || $attachment->getOriginalFilename() !== $filename) {
-            throw new NotFoundHttpException();
-        }
+        $attachment = $this->getFileById($id);
 
         $response = new Response();
         $response->headers->set('Cache-Control', 'public');
@@ -121,6 +108,21 @@ class FileController extends Controller
     {
         $file = $this->get('doctrine')->getRepository('OroAttachmentBundle:File')->find($id);
         if (!$file || ($file->getFilename() !== $fileName && $file->getOriginalFilename() !== $fileName)) {
+            throw new NotFoundHttpException('File not found');
+        }
+
+        return $file;
+    }
+
+    /**
+     * @param $id
+     * @return File|null
+     */
+    private function getFileById($id)
+    {
+        /** @var File|null $file */
+        $file = $this->getDoctrine()->getManagerForClass(File::class)->find(File::class, $id);
+        if (!$file) {
             throw new NotFoundHttpException('File not found');
         }
 

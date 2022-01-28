@@ -44,7 +44,6 @@ class AttachmentManager extends BaseManager
         return $this->getAttachment(
             ClassUtils::getRealClass($parentEntity),
             $parentEntity->getId(),
-            $fieldName,
             $entity,
             $type,
             $absolute
