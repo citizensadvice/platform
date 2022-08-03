@@ -80,6 +80,11 @@ class MassDeleteLimiter
     public function getLimitResult(MassActionHandlerArgs $args)
     {
         $query              = $args->getResults()->getSource();
+
+        // Manually set the query offset to 0, preventing issues when deleting from pages higher than 1
+        // @see https://citizensadvice.atlassian.net/browse/WB-144
+        $query->setFirstResult(0);
+
         $resultsForSelected = new DeletionIterableResult($query);
         $deletableQuery     = $this->cloneQuery($query);
 
