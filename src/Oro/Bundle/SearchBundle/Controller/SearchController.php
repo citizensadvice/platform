@@ -2,7 +2,6 @@
 
 namespace Oro\Bundle\SearchBundle\Controller;
 
-use CitizensAdvice\Bundle\SearchBundle\Entity\SearchLog;
 use Oro\Bundle\EntityConfigBundle\Config\Id\EntityConfigId;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
@@ -111,11 +110,6 @@ class SearchController extends Controller
 
         $entities = $this->get('oro_search.index')->getAllowedEntitiesListAliases();
         $configManager = $this->get('oro_entity_config.config_manager');
-
-        $searchLog = new SearchLog($from ? $from : 'all', $string);
-
-        $entityManager = $this->get('doctrine')->getManager();
-        $entityManager->persist($searchLog);
 
         $icons = [];
 
